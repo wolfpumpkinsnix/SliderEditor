@@ -159,11 +159,14 @@ export function duplicateSlide(index: number): void {
   const original = presentation.value.slides[index]
   const copy: Slide = JSON.parse(JSON.stringify(original))
   copy.id = crypto.randomUUID()
-  copy.elements = copy.elements.map(el => ({
-    ...el,
-    id: crypto.randomUUID(),
-    ...(el.type === 'grid' ? { children: (el as { type: 'grid'; children: { id: string }[] }).children.map(c => ({ ...c, id: crypto.randomUUID() })) } : {}),
-  })) as Slide['elements']
+  copy.elements = copy.elements.map(el => {
+    const withNewId = { ...el, id: crypto.randomUUID() }
+    if (el.type === 'grid') {
+      const grid = el as { type: 'grid'; children: { id: string }[] }
+      return { ...withNewId, children: grid.children.map(c => ({ ...c, id: crypto.randomUUID() })) }
+    }
+    return withNewId
+  }) as Slide['elements']
   presentation.value.slides.splice(index + 1, 0, copy)
   persist()
   batch(() => {
@@ -184,7 +187,7 @@ export function moveSlide(fromIndex: number, toIndex: number): void {
 }
 
 export function addElement(element: SlideElement): void {
-  currentSlide.value.elements.push(element)
+  presentation.value.slides[currentSlideIndex.value].elements.push(element)
   persist()
   batch(() => {
     selectedElementId.value = element.id
@@ -193,7 +196,7 @@ export function addElement(element: SlideElement): void {
 }
 
 export function removeElement(elementId: string): void {
-  const slide = currentSlide.value
+  const slide = presentation.value.slides[currentSlideIndex.value]
   slide.elements = slide.elements.filter(e => e.id !== elementId)
   persist()
   batch(() => {
