@@ -1,165 +1,63 @@
-import type { Presentation, Slide, SlideElement, EditorMode } from '../models/types.ts'
-import { savePresentation, loadPresentation } from '../services/storage.ts'
-import { examplePresentation } from '../models/defaults.ts'
+/**
+ * store.ts
+ *
+ * Backward-compatible EventTarget-based store.
+ *
+ * Internally this module delegates all state to the signals-based store
+ * (signalsStore.ts).  An effect() subscription bridges signal changes to the
+ * 'state-changed' CustomEvent so that existing components that listen on the
+ * store object continue to work without modification.
+ *
+ * New code should prefer importing signals and action functions directly from
+ * signalsStore.ts and subscribing with effect() instead of 'state-changed'.
+ */
 
-interface StoreState {
-  presentation: Presentation
-  currentSlideIndex: number
-  selectedElementId: string | null
-  mode: EditorMode
-}
+import { effect } from '@preact/signals-core'
+import type { Presentation, Slide, SlideElement, EditorMode } from '../models/types.ts'
+import * as signals from './signalsStore.ts'
 
 class PresentationStore extends EventTarget {
-  private _state: StoreState
-
   constructor() {
     super()
-    const saved = loadPresentation()
-    this._state = {
-      presentation: saved ?? examplePresentation(),
-      currentSlideIndex: 0,
-      selectedElementId: null,
-      mode: 'edit',
-    }
-  }
-
-  get state(): Readonly<StoreState> { return this._state }
-  get presentation(): Presentation { return this._state.presentation }
-  get currentSlideIndex(): number { return this._state.currentSlideIndex }
-  get currentSlide(): Slide { return this._state.presentation.slides[this._state.currentSlideIndex] }
-  get selectedElementId(): string | null { return this._state.selectedElementId }
-  get mode(): EditorMode { return this._state.mode }
-
-  private emit() {
-    this.dispatchEvent(new CustomEvent('state-changed', { detail: this._state }))
-  }
-
-  private save() {
-    this._state.presentation.meta.updatedAt = new Date().toISOString()
-    savePresentation(this._state.presentation)
-  }
-
-  setPresentation(p: Presentation) {
-    this._state.presentation = p
-    this._state.currentSlideIndex = 0
-    this._state.selectedElementId = null
-    this.save()
-    this.emit()
-  }
-
-  updatePresentation(updater: (p: Presentation) => void) {
-    updater(this._state.presentation)
-    this.save()
-    this.emit()
-  }
-
-  goToSlide(index: number) {
-    const clamped = Math.max(0, Math.min(index, this._state.presentation.slides.length - 1))
-    this._state.currentSlideIndex = clamped
-    this._state.selectedElementId = null
-    this.emit()
-  }
-
-  selectElement(id: string | null) {
-    this._state.selectedElementId = id
-    this.emit()
-  }
-
-  setMode(mode: EditorMode) {
-    this._state.mode = mode
-    this._state.selectedElementId = null
-    this.emit()
-  }
-
-  updateCurrentSlide(updater: (slide: Slide) => void) {
-    const slide = this.currentSlide
-    if (slide) {
-      updater(slide)
-      this.save()
-      this.emit()
-    }
-  }
-
-  updateElement(elementId: string, updater: (el: SlideElement) => void) {
-    for (const slide of this._state.presentation.slides) {
-      const el = slide.elements.find(e => e.id === elementId)
-      if (el) { updater(el); break }
-      // Check inside grids
-      for (const topEl of slide.elements) {
-        if (topEl.type === 'grid') {
-          const card = topEl.children.find(c => c.id === elementId)
-          if (card) { updater(card); break }
-        }
+    // Bridge every signal change to a 'state-changed' CustomEvent.
+    // effect() runs immediately on creation and again whenever any of the four
+    // accessed signals change.  batch() in the action functions ensures that
+    // multi-signal updates only fire this effect once.
+    effect(() => {
+      const state = {
+        presentation: signals.presentation.value,
+        currentSlideIndex: signals.currentSlideIndex.value,
+        selectedElementId: signals.selectedElementId.value,
+        mode: signals.mode.value,
       }
-    }
-    this.save()
-    this.emit()
+      this.dispatchEvent(new CustomEvent('state-changed', { detail: state }))
+    })
   }
 
-  addSlide(slide: Slide, afterIndex?: number) {
-    const idx = afterIndex !== undefined ? afterIndex + 1 : this._state.presentation.slides.length
-    this._state.presentation.slides.splice(idx, 0, slide)
-    this._state.currentSlideIndex = idx
-    this._state.selectedElementId = null
-    this.save()
-    this.emit()
-  }
+  // ── Getters (mirror signals) ─────────────────────────────────────────────────
 
-  deleteSlide(index: number) {
-    if (this._state.presentation.slides.length <= 1) return
-    this._state.presentation.slides.splice(index, 1)
-    this._state.currentSlideIndex = Math.min(index, this._state.presentation.slides.length - 1)
-    this._state.selectedElementId = null
-    this.save()
-    this.emit()
-  }
+  get presentation(): Presentation { return signals.presentation.value }
+  get currentSlideIndex(): number { return signals.currentSlideIndex.value }
+  get currentSlide(): Slide { return signals.currentSlide.value }
+  get selectedElementId(): string | null { return signals.selectedElementId.value }
+  get mode(): EditorMode { return signals.mode.value }
 
-  duplicateSlide(index: number) {
-    const original = this._state.presentation.slides[index]
-    const copy: Slide = JSON.parse(JSON.stringify(original))
-    copy.id = crypto.randomUUID()
-    copy.elements = copy.elements.map(el => ({
-      ...el,
-      id: crypto.randomUUID(),
-      ...(el.type === 'grid' ? { children: (el as { type: 'grid'; children: { id: string }[] }).children.map(c => ({ ...c, id: crypto.randomUUID() })) } : {}),
-    })) as Slide['elements']
-    this._state.presentation.slides.splice(index + 1, 0, copy)
-    this._state.currentSlideIndex = index + 1
-    this.save()
-    this.emit()
-  }
+  // ── Actions (delegate to signalsStore) ──────────────────────────────────────
 
-  moveSlide(fromIndex: number, toIndex: number) {
-    const slides = this._state.presentation.slides
-    const [slide] = slides.splice(fromIndex, 1)
-    slides.splice(toIndex, 0, slide)
-    this._state.currentSlideIndex = toIndex
-    this.save()
-    this.emit()
-  }
-
-  addElement(element: SlideElement) {
-    this.currentSlide.elements.push(element)
-    this._state.selectedElementId = element.id
-    this.save()
-    this.emit()
-  }
-
-  removeElement(elementId: string) {
-    const slide = this.currentSlide
-    slide.elements = slide.elements.filter(e => e.id !== elementId)
-    if (this._state.selectedElementId === elementId) {
-      this._state.selectedElementId = null
-    }
-    this.save()
-    this.emit()
-  }
-
-  updateTitle(title: string) {
-    this._state.presentation.title = title
-    this.save()
-    this.emit()
-  }
+  setPresentation(p: Presentation): void { signals.setPresentation(p) }
+  updatePresentation(updater: (p: Presentation) => void): void { signals.updatePresentation(updater) }
+  goToSlide(index: number): void { signals.goToSlide(index) }
+  selectElement(id: string | null): void { signals.selectElement(id) }
+  setMode(m: EditorMode): void { signals.setMode(m) }
+  updateCurrentSlide(updater: (slide: Slide) => void): void { signals.updateCurrentSlide(updater) }
+  updateElement(elementId: string, updater: (el: SlideElement) => void): void { signals.updateElement(elementId, updater) }
+  addSlide(slide: Slide, afterIndex?: number): void { signals.addSlide(slide, afterIndex) }
+  deleteSlide(index: number): void { signals.deleteSlide(index) }
+  duplicateSlide(index: number): void { signals.duplicateSlide(index) }
+  moveSlide(fromIndex: number, toIndex: number): void { signals.moveSlide(fromIndex, toIndex) }
+  addElement(element: SlideElement): void { signals.addElement(element) }
+  removeElement(elementId: string): void { signals.removeElement(elementId) }
+  updateTitle(title: string): void { signals.updateTitle(title) }
 }
 
 export const store = new PresentationStore()

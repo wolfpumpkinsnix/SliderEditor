@@ -1,3 +1,5 @@
+import { effect } from '@preact/signals-core'
+import { mode } from '../state/signalsStore.ts'
 import { store } from '../state/store.ts'
 import './editor/toolbar.ts'
 import './editor/slide-panel.ts'
@@ -7,16 +9,25 @@ import './presentation/presentation-mode.ts'
 
 export class AppShellElement extends HTMLElement {
   private _presentationMode: HTMLElement | null = null
-  private _onStateChanged = () => this.handleModeChange()
+  // Holds the cleanup function returned by effect() – called on disconnect.
+  private _disposeEffect: (() => void) | null = null
 
   connectedCallback() {
-    store.addEventListener('state-changed', this._onStateChanged)
     this.render()
+    // Use effect() from @preact/signals-core to react to mode signal changes.
+    // This replaces the 'state-changed' EventTarget listener for presentation-
+    // mode toggling: the effect runs immediately on connection, and again
+    // automatically whenever the `mode` signal value changes.
+    this._disposeEffect = effect(() => {
+      this.handleModeChange(mode.value)
+    })
     this.setupKeyboardShortcuts()
   }
 
   disconnectedCallback() {
-    store.removeEventListener('state-changed', this._onStateChanged)
+    // Dispose the effect to stop listening for signal changes.
+    this._disposeEffect?.()
+    this._disposeEffect = null
   }
 
   private render() {
@@ -30,14 +41,14 @@ export class AppShellElement extends HTMLElement {
     `
   }
 
-  private handleModeChange() {
-    if (store.mode === 'present' && !this._presentationMode) {
+  private handleModeChange(currentMode: string) {
+    if (currentMode === 'present' && !this._presentationMode) {
       this._presentationMode = document.createElement('presentation-mode')
       document.body.appendChild(this._presentationMode)
       this._presentationMode.addEventListener('remove', () => {
         this._presentationMode = null
       })
-    } else if (store.mode === 'edit' && this._presentationMode) {
+    } else if (currentMode === 'edit' && this._presentationMode) {
       this._presentationMode.remove()
       this._presentationMode = null
     }
