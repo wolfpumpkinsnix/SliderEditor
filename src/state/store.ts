@@ -58,6 +58,10 @@ class PresentationStore extends EventTarget {
   addElement(element: SlideElement): void { signals.addElement(element) }
   removeElement(elementId: string): void { signals.removeElement(elementId) }
   updateTitle(title: string): void { signals.updateTitle(title) }
+  moveElementUp(id: string): void { signals.moveElementUp(id) }
+  moveElementDown(id: string): void { signals.moveElementDown(id) }
+  bringToFront(id: string): void { signals.bringToFront(id) }
+  sendToBack(id: string): void { signals.sendToBack(id) }
 }
 
 export const store = new PresentationStore()

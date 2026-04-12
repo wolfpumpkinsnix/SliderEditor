@@ -1,0 +1,60 @@
+<div class="gradient-mesh"></div>
+<div class="particles-container" style="position:absolute;inset:0;z-index:1;pointer-events:none;"></div>
+<div class="slide-content"></div>
+
+<!-- Micro-Templates for Slide Elements -->
+
+<template id="tpl-blob">
+  <div class="blob"></div>
+</template>
+
+<template id="tpl-particle-canvas">
+  <canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1;pointer-events:none;"></canvas>
+</template>
+
+<template id="tpl-label">
+  <p class="slide-element uppercase tracking-[0.3em] text-xs text-text-muted mb-3 reveal"></p>
+</template>
+
+<template id="tpl-heading">
+  <h1 class="slide-element reveal"></h1>
+</template>
+
+<template id="tpl-text">
+  <p class="slide-element text-sm mb-4 reveal"></p>
+</template>
+
+<template id="tpl-list">
+  <ul class="slide-element list-inside space-y-2 text-sm reveal"></ul>
+</template>
+
+<template id="tpl-grid">
+  <div class="slide-element grid gap-6 mt-2"></div>
+</template>
+
+<template id="tpl-card-glass">
+  <div class="bg-glass-bg backdrop-blur-xl border border-glass-border rounded-2xl p-5 reveal">
+    <div class="card-header flex items-center gap-2 mb-2">
+      <span class="card-icon text-lg"></span>
+      <h3 class="card-title text-sm font-semibold"></h3>
+    </div>
+    <p class="card-body text-sm text-text-muted"></p>
+    <ul class="card-list list-disc list-inside space-y-2 text-sm text-text-muted"></ul>
+  </div>
+</template>
+
+<template id="tpl-card-metric">
+  <div class="metric-card transition reveal">
+    <div class="flex gap-4 items-start">
+      <div class="card-badge flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-1 to-accent-2 text-slate-950 text-sm font-semibold"></div>
+      <div>
+        <h3 class="card-title text-base font-semibold mb-1 leading-snug"></h3>
+        <p class="card-body text-sm text-text-muted"></p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-emoji">
+  <div class="slide-element mb-5 drop-shadow-xl mx-auto select-none"></div>
+</template>

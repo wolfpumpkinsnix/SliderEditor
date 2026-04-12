@@ -47,7 +47,7 @@ export function blankTitleSlide(): Slide {
     },
     elements: [
       { id: genId(), type: 'emoji', content: '🎯', size: 80, animated: true },
-      { id: genId(), type: 'heading', level: 1, content: 'Presentation Title', gradient: true, glow: false },
+      { id: genId(), type: 'heading', level: 1, content: 'Presentation Title', gradient: true },
       { id: genId(), type: 'text', content: 'Subtitle or tagline here', variant: 'muted', align: 'center' },
     ],
   }
@@ -62,7 +62,7 @@ export function blankContentSlide(): Slide {
       blobs: [cyanBlob(), violetBlob()],
     },
     elements: [
-      { id: genId(), type: 'heading', level: 2, content: 'Slide Title', gradient: false, glow: false },
+      { id: genId(), type: 'heading', level: 2, content: 'Slide Title', gradient: false },
       { id: genId(), type: 'text', content: 'Add your content here.', variant: 'secondary' },
     ],
   }
@@ -90,7 +90,7 @@ export function examplePresentation(): Presentation {
         },
         elements: [
           { id: genId(), type: 'emoji', content: '🧭', size: 80, animated: true },
-          { id: genId(), type: 'heading', level: 1, content: 'GraphQL vs REST', gradient: true, glow: false },
+          { id: genId(), type: 'heading', level: 1, content: 'GraphQL vs REST', gradient: true },
           { id: genId(), type: 'text', content: 'Choosing the Right API Style for Modern Applications', variant: 'muted', align: 'center' },
         ],
       },
@@ -101,7 +101,7 @@ export function examplePresentation(): Presentation {
         hasParticles: false,
         background: { blobs: [cyanBlob({ opacity: 0.14 }), violetBlob({ opacity: 0.12 })] },
         elements: [
-          { id: genId(), type: 'heading', level: 2, content: 'Agenda', gradient: false, glow: false },
+          { id: genId(), type: 'heading', level: 2, content: 'Agenda', gradient: false },
           {
             id: genId(), type: 'grid', columns: 2, children: [
               { id: genId(), type: 'card', variant: 'glass', numberBadge: 1, title: 'What are REST and GraphQL?', body: 'Quick refresher on each API style and how they model data and operations.' },
@@ -120,7 +120,7 @@ export function examplePresentation(): Presentation {
         background: { blobs: [cyanBlob({ opacity: 0.14 }), greenBlob({ color: '#22C55E', opacity: 0.12 })] },
         elements: [
           { id: genId(), type: 'label', content: 'Foundations' },
-          { id: genId(), type: 'heading', level: 2, content: 'What is REST?', gradient: false, glow: false },
+          { id: genId(), type: 'heading', level: 2, content: 'What is REST?', gradient: false },
           { id: genId(), type: 'text', content: 'REST (Representational State Transfer) is an architectural style for building networked APIs around resources, exposed as multiple endpoints that use HTTP methods like GET, POST, PUT, and DELETE.', variant: 'secondary' },
           {
             id: genId(), type: 'grid', columns: 2, children: [
@@ -140,7 +140,7 @@ export function examplePresentation(): Presentation {
         background: { blobs: [violetBlob({ width: 360, height: 360, top: '-90px', right: '-110px', opacity: 0.16 }), cyanBlob({ width: 260, height: 260, bottom: '-70px', left: '-40px', opacity: 0.14 })] },
         elements: [
           { id: genId(), type: 'label', content: 'Foundations' },
-          { id: genId(), type: 'heading', level: 2, content: 'What is GraphQL?', gradient: false, glow: false },
+          { id: genId(), type: 'heading', level: 2, content: 'What is GraphQL?', gradient: false },
           { id: genId(), type: 'text', content: 'GraphQL is a query language and runtime for APIs that exposes a single endpoint and strongly typed schema, letting clients request exactly the fields they need.', variant: 'secondary' },
           {
             id: genId(), type: 'grid', columns: 2, children: [
@@ -160,7 +160,7 @@ export function examplePresentation(): Presentation {
         background: { blobs: [cyanBlob({ opacity: 0.14 }), violetBlob({ opacity: 0.12 })] },
         elements: [
           { id: genId(), type: 'label', content: 'At a Glance' },
-          { id: genId(), type: 'heading', level: 2, content: 'REST vs GraphQL in one slide', gradient: false, glow: false },
+          { id: genId(), type: 'heading', level: 2, content: 'REST vs GraphQL in one slide', gradient: false },
           {
             id: genId(), type: 'grid', columns: 2, children: [
               {
@@ -188,7 +188,7 @@ export function examplePresentation(): Presentation {
           ],
         },
         elements: [
-          { id: genId(), type: 'heading', level: 2, content: 'REST and GraphQL work best when used intentionally', gradient: true, glow: false },
+          { id: genId(), type: 'heading', level: 2, content: 'REST and GraphQL work best when used intentionally', gradient: true },
           { id: genId(), type: 'text', content: 'REST remains a great default for simple, resource-based services, while GraphQL shines in complex, client-driven domains where flexibility and a unified graph pay off.', variant: 'secondary', align: 'center', maxWidth: '36rem' },
           { id: genId(), type: 'text', content: 'Questions? Discussion? Examples from your own stack?', variant: 'muted', align: 'center' },
         ],

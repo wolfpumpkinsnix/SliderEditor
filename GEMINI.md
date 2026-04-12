@@ -1,0 +1,1 @@
+check for AGENTS.md files in the workspace and follow their instructions

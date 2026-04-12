@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(bun add:*)",
-      "Bash(bun run:*)"
+      "Bash(bun run:*)",
+      "mcp__plugin_claude-mem_mcp-search__search",
+      "mcp__plugin_claude-mem_mcp-search__smart_outline",
+      "Bash(find /c/Dev/javascript/slide_editor/src -name \"*.html\" -exec wc -l {} +)",
+      "mcp__plugin_claude-mem_mcp-search__get_observations"
     ]
   }
 }

@@ -1,0 +1,19 @@
+<div class="mouse-spotlight" id="pres-spotlight" style="position:fixed;inset:0;z-index:99;pointer-events:none;"></div>
+<div id="pres-deck" style="flex:1;position:relative;overflow:hidden;"></div>
+<div class="nav-controls" id="pres-nav">
+  <button class="nav-btn" id="pres-prev">&#8249;</button>
+  <div class="slide-dots" id="pres-dots"></div>
+  <button class="nav-btn" id="pres-next">&#8250;</button>
+  <span class="slide-counter" id="pres-counter"></span>
+  <button class="nav-btn" id="pres-close" title="Exit (Esc)" style="margin-left:8px;font-size:14px;">✕</button>
+</div>
+
+<!-- Micro-Templates -->
+
+<template id="tpl-dot">
+  <div class="dot"></div>
+</template>
+
+<template id="tpl-deck-renderer">
+  <slide-renderer></slide-renderer>
+</template>

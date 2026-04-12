@@ -60,10 +60,25 @@ export const currentSlide = computed<Slide>(
 
 // ── Private helpers ────────────────────────────────────────────────────────────
 
-/** Stamp updatedAt and persist to localStorage. */
+let _persistTimer: ReturnType<typeof setTimeout> | null = null
+
+/** Stamp updatedAt and debounce-persist to localStorage (300ms). */
 function persist(): void {
   presentation.value.meta.updatedAt = new Date().toISOString()
-  savePresentation(presentation.value)
+  if (_persistTimer) clearTimeout(_persistTimer)
+  _persistTimer = setTimeout(() => {
+    savePresentation(presentation.value)
+    _persistTimer = null
+  }, 300)
+}
+
+/** Flush any pending persist immediately (call on beforeunload). */
+export function flushPersist(): void {
+  if (_persistTimer) {
+    clearTimeout(_persistTimer)
+    _persistTimer = null
+    savePresentation(presentation.value)
+  }
 }
 
 /** After an in-place mutation of the presentation object, create a shallow copy
@@ -118,19 +133,21 @@ export function updateCurrentSlide(updater: (slide: Slide) => void): void {
 }
 
 export function updateElement(elementId: string, updater: (el: SlideElement) => void): void {
-  for (const slide of presentation.value.slides) {
+  let found = false
+  outer: for (const slide of presentation.value.slides) {
     const el = slide.elements.find(e => e.id === elementId)
-    if (el) { updater(el); break }
-    // Check inside grids
+    if (el) { updater(el); found = true; break outer }
     for (const topEl of slide.elements) {
       if (topEl.type === 'grid') {
         const card = topEl.children.find(c => c.id === elementId)
-        if (card) { updater(card); break }
+        if (card) { updater(card); found = true; break outer }
       }
     }
   }
-  persist()
-  notifyPresentation()
+  if (found) {
+    persist()
+    notifyPresentation()
+  }
 }
 
 export function addSlide(slide: Slide, afterIndex?: number): void {
@@ -197,7 +214,17 @@ export function addElement(element: SlideElement): void {
 
 export function removeElement(elementId: string): void {
   const slide = presentation.value.slides[currentSlideIndex.value]
-  slide.elements = slide.elements.filter(e => e.id !== elementId)
+  const topIndex = slide.elements.findIndex(e => e.id === elementId)
+  if (topIndex !== -1) {
+    slide.elements.splice(topIndex, 1)
+  } else {
+    for (const el of slide.elements) {
+      if (el.type === 'grid') {
+        const childIndex = el.children.findIndex(c => c.id === elementId)
+        if (childIndex !== -1) { el.children.splice(childIndex, 1); break }
+      }
+    }
+  }
   persist()
   batch(() => {
     if (selectedElementId.value === elementId) {
@@ -211,4 +238,49 @@ export function updateTitle(title: string): void {
   presentation.value.title = title
   persist()
   notifyPresentation()
+}
+
+export function moveElementUp(elementId: string): void {
+  const slide = presentation.value.slides[currentSlideIndex.value]
+  const idx = slide.elements.findIndex(e => e.id === elementId)
+  if (idx <= 0) return
+  ;[slide.elements[idx - 1], slide.elements[idx]] = [slide.elements[idx], slide.elements[idx - 1]]
+  persist()
+  notifyPresentation()
+}
+
+export function moveElementDown(elementId: string): void {
+  const slide = presentation.value.slides[currentSlideIndex.value]
+  const idx = slide.elements.findIndex(e => e.id === elementId)
+  if (idx === -1 || idx >= slide.elements.length - 1) return
+  ;[slide.elements[idx], slide.elements[idx + 1]] = [slide.elements[idx + 1], slide.elements[idx]]
+  persist()
+  notifyPresentation()
+}
+
+export function bringToFront(elementId: string): void {
+  const slide = presentation.value.slides[currentSlideIndex.value]
+  const idx = slide.elements.findIndex(e => e.id === elementId)
+  if (idx === -1 || idx === slide.elements.length - 1) return
+  slide.elements.push(...slide.elements.splice(idx, 1))
+  persist()
+  notifyPresentation()
+}
+
+export function sendToBack(elementId: string): void {
+  const slide = presentation.value.slides[currentSlideIndex.value]
+  const idx = slide.elements.findIndex(e => e.id === elementId)
+  if (idx <= 0) return
+  slide.elements.unshift(...slide.elements.splice(idx, 1))
+  persist()
+  notifyPresentation()
+}
+
+/**
+ * Find an element by id in a slide, searching both top-level elements
+ * and children of grid elements.
+ */
+export function findElement(slide: Slide, id: string): SlideElement | undefined {
+  return slide.elements.find(e => e.id === id)
+    ?? slide.elements.flatMap(e => e.type === 'grid' ? e.children : []).find(c => c.id === id)
 }

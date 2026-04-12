@@ -1,0 +1,76 @@
+<div class="prop-section">
+  <div class="prop-group">
+    <div id="slide-index-label" class="prop-label" style="color: #06B6D4;">Slide 1</div>
+  </div>
+
+  <div class="prop-group">
+    <label class="prop-label">Layout</label>
+    <select id="slide-layout" class="prop-select">
+      <option value="center">Center (title slides)</option>
+      <option value="top">Top (content slides)</option>
+    </select>
+  </div>
+
+  <div class="prop-group">
+    <label class="prop-check-row">
+      <input type="checkbox" id="slide-particles">
+      <span style="font-size: 13px;">Ambient Particles</span>
+    </label>
+  </div>
+</div>
+
+<div class="prop-section">
+  <label class="prop-label">Theme Colors</label>
+  <div class="prop-stack">
+    <div class="prop-row">
+      <input type="color" data-theme-color="background" class="prop-input" style="width:32px;height:32px;padding:0;background:none;border:none;">
+      <span style="font-size: 12px; color: #94a3b8;">Background</span>
+    </div>
+    <div class="prop-row">
+      <input type="color" data-theme-color="heading" class="prop-input" style="width:32px;height:32px;padding:0;background:none;border:none;">
+      <span style="font-size: 12px; color: #94a3b8;">Headings</span>
+    </div>
+    <div class="prop-row">
+      <input type="color" data-theme-color="text" class="prop-input" style="width:32px;height:32px;padding:0;background:none;border:none;">
+      <span style="font-size: 12px; color: #94a3b8;">Body Text</span>
+    </div>
+    <div class="prop-row">
+      <input type="color" data-theme-color="accent" class="prop-input" style="width:32px;height:32px;padding:0;background:none;border:none;">
+      <span style="font-size: 12px; color: #94a3b8;">Accent</span>
+    </div>
+  </div>
+</div>
+
+<div class="prop-section">
+  <label class="prop-label">Theme Fonts</label>
+  <div class="prop-stack">
+    <div class="prop-group">
+      <label class="prop-label">Display Font</label>
+      <input type="text" id="theme-font-display" class="prop-input" placeholder="e.g. Inter, Poppins">
+    </div>
+    <div class="prop-group">
+      <label class="prop-label">Body Font</label>
+      <input type="text" id="theme-font-body" class="prop-input" placeholder="e.g. Inter, system-ui">
+    </div>
+  </div>
+</div>
+
+<div class="prop-section">
+  <div class="prop-row" style="justify-content: space-between; margin-bottom: 12px;">
+    <label class="prop-label" style="margin-bottom: 0;">Background Blobs</label>
+    <button id="add-blob" class="icon-btn" title="Add Blob">+</button>
+  </div>
+  <div id="blobs-list"></div>
+</div>
+
+<!-- Micro-Templates -->
+<template id="tpl-blob-row">
+  <div class="blob-row">
+    <div class="blob-header">
+      <input type="color" data-blob-color class="prop-input" style="width:24px;height:24px;padding:0;background:none;border:none;">
+      <div class="opacity-value">100%</div>
+      <button class="icon-btn" data-action="delete-blob" style="width:18px;height:18px;font-size:12px;background:none;border:none;">✕</button>
+    </div>
+    <input type="range" data-blob-opacity min="0" max="1" step="0.01" class="prop-control">
+  </div>
+</template>

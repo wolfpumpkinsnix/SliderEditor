@@ -49,7 +49,7 @@ export interface BlobConfig {
   bottom?: string
   left?: string
   right?: string
-  animationDuration?: number
+
 }
 
 export type SlideElement =
@@ -73,7 +73,6 @@ export interface HeadingElement {
   level: 1 | 2
   content: string
   gradient: boolean
-  glow: boolean
 }
 
 export interface TextElement {

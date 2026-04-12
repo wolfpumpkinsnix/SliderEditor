@@ -25,12 +25,12 @@ export function exportPresentation(presentation: Presentation): string {
   const css = `
     :root { --color-bg: ${theme.colors.bg}; --color-text: ${theme.colors.text}; --glow-color-rgb: ${theme.colors.glowColorRgb}; }
     *, *::before, *::after { box-sizing: border-box; }
-    html, body { background: var(--color-bg); margin: 0; }
-    body { font-family: '${theme.fonts.body}', system-ui, sans-serif; color: ${theme.colors.text}; overflow: hidden; height: 100vh; width: 100vw; }
+    html, body { background: var(--color-bg); margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
+    body { font-family: '${theme.fonts.body}', system-ui, sans-serif; color: ${theme.colors.text}; }
     .deck { width: 100vw; height: 100vh; position: relative; }
-    .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--color-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transform: scale(0.95); transition: opacity 0.7s ease, transform 0.7s ease; pointer-events: none; overflow: hidden; }
+    .slide { position: absolute; inset: 0; background: var(--color-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transform: scale(0.95); transition: opacity 0.7s ease, transform 0.7s ease; pointer-events: none; overflow: hidden; }
     .slide.active { opacity: 1; transform: scale(1); pointer-events: all; }
-    .slide > .slide-content { position: relative; z-index: 2; width: 100%; max-width: 1100px; padding: clamp(1.5rem, 4vw, 4rem); }
+    .slide > .slide-content { position: relative; z-index: 2; width: 100%; max-width: 1100px; padding: 80px; }
     .slide.text-center > .slide-content { text-align: center; }
     .nav-controls { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; z-index: 100; background: ${theme.colors.glassBg}; backdrop-filter: blur(10px); padding: 10px 24px; border-radius: 40px; border: 1px solid ${theme.colors.glassBorder}; }
     .nav-btn { width: 40px; height: 40px; border: none; background: rgba(15,23,42,0.9); color: #e0f2fe; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s, transform 0.2s; }
@@ -129,8 +129,8 @@ function renderElementHTML(el: SlideElement, indent = '            '): string {
     case 'heading': {
       const tag = el.level === 1 ? 'h1' : 'h2'
       const sizeClass = el.level === 1
-        ? 'font-display text-[clamp(2.6rem,6vw,4.8rem)] font-black tracking-tight mb-4'
-        : 'font-display text-[clamp(2rem,4.2vw,3rem)] font-bold mb-6'
+        ? 'font-display text-[4.5rem] font-black tracking-tight mb-4'
+        : 'font-display text-[3rem] font-bold mb-6'
       const colorClass = el.gradient
         ? 'bg-linear-to-br from-accent-1 via-accent-2 to-accent-1 bg-clip-text text-transparent'
         : ''
@@ -150,9 +150,10 @@ function renderElementHTML(el: SlideElement, indent = '            '): string {
     }
     case 'grid': {
       const colClass = el.columns === 3 ? 'grid-cols-3' : 'grid-cols-2'
+      const gapStyle = el.gap !== undefined ? ` style="gap: ${el.gap}px"` : ''
       const childIndent = indent + '    '
       const children = el.children.map(c => renderCardHTML(c, childIndent)).join('\n')
-      return `${indent}<div class="grid ${colClass} gap-6 mt-2">\n${children}\n${indent}</div>`
+      return `${indent}<div class="grid ${colClass} gap-6 mt-2"${gapStyle}>\n${children}\n${indent}</div>`
     }
     case 'card':
       return renderCardHTML(el, indent)
