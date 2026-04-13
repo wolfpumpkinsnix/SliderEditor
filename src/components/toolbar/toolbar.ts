@@ -1,9 +1,8 @@
 import { store } from '../../state/store.ts'
 import { presentation } from '../../state/signalsStore.ts'
-import { blankContentSlide, blankTitleSlide } from '../../models/defaults.ts'
+import { blankContentSlide, blankTitleSlide, createHeading, createText, createLabel, createList, createEmoji, createGrid, createCard } from '../../models/defaults.ts'
 import { exportPresentation } from '../../services/export.ts'
-import { genId } from '../../services/id.ts'
-import type { SlideElement } from '../../models/types.ts'
+import type { Entity } from '../../models/types.ts'
 import { Component } from '../../lib/decorators.ts'
 import { EffectComponent } from '../../lib/effect_component.ts'
 import toolbarHtml from './toolbar.html?raw'
@@ -91,28 +90,27 @@ export class EditorToolbarElement extends EffectComponent {
   }
 
   private handleAddElement(type: string) {
-    let element: SlideElement
+    let element: Entity
     switch (type) {
-      case 'heading': element = { id: genId(), type: 'heading', level: 2, content: 'New Heading', gradient: false }; break
-      case 'text': element = { id: genId(), type: 'text', content: 'Add your text here.', variant: 'secondary' }; break
-      case 'label': element = { id: genId(), type: 'label', content: 'Section Label' }; break
-      case 'list': element = { id: genId(), type: 'list', items: ['First item', 'Second item', 'Third item'], style: 'disc' }; break
-      case 'emoji': element = { id: genId(), type: 'emoji', content: '🎯', size: 64, animated: false }; break
+      case 'empty': element = { id: crypto.randomUUID(), name: 'New Entity', components: [] }; break
+      case 'heading': element = createHeading('New Heading', 2); break
+      case 'text': element = createText('Add your text here.'); break
+      case 'label': element = createLabel('Section Label'); break
+      case 'list': element = createList(['First item', 'Second item', 'Third item']); break
+      case 'emoji': element = createEmoji('🎯', 64, false); break
       case 'grid-2':
-        element = {
-          id: genId(), type: 'grid', columns: 2, children: [
-            { id: genId(), type: 'card', variant: 'glass', icon: '✨', title: 'Card Title', body: 'Card description here.' },
-            { id: genId(), type: 'card', variant: 'glass', icon: '🚀', title: 'Card Title', body: 'Card description here.' },
-          ],
-        }; break
+        element = createGrid(2, 24, [
+          createCard('Card Title', 'Card description here.', 'glass', '✨'),
+          createCard('Card Title', 'Card description here.', 'glass', '🚀'),
+        ]); 
+        break
       case 'grid-3':
-        element = {
-          id: genId(), type: 'grid', columns: 3, children: [
-            { id: genId(), type: 'card', variant: 'metric', icon: '💡', title: 'Feature', body: 'Description of this feature.' },
-            { id: genId(), type: 'card', variant: 'metric', icon: '⚡', title: 'Feature', body: 'Description of this feature.' },
-            { id: genId(), type: 'card', variant: 'metric', icon: '🔥', title: 'Feature', body: 'Description of this feature.' },
-          ],
-        }; break
+        element = createGrid(3, 24, [
+          createCard('Feature', 'Description of this feature.', 'metric', '💡'),
+          createCard('Feature', 'Description of this feature.', 'metric', '⚡'),
+          createCard('Feature', 'Description of this feature.', 'metric', '🔥'),
+        ]); 
+        break
       default: return
     }
     store.addElement(element)
@@ -120,6 +118,7 @@ export class EditorToolbarElement extends EffectComponent {
 
   private buildAddMenu(menu: HTMLElement) {
     const elementTypes = [
+      { label: '✨ Empty Entity', type: 'empty' },
       { label: '📝 Heading', type: 'heading' },
       { label: '📄 Text', type: 'text' },
       { label: '🏷 Label', type: 'label' },

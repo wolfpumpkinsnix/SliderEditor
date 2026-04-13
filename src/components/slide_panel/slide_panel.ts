@@ -8,6 +8,7 @@ import slidePanelHtml from './slide_panel.html?raw'
 
 import '../slide_thumbnail/slide_thumbnail.ts'
 import type { SlideThumbnailElement } from '../slide_thumbnail/slide_thumbnail.ts'
+import '../element_tree/element_tree.ts'
 
 @Component({
   tag: 'slide-panel',

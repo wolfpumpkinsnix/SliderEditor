@@ -1,4 +1,4 @@
-import type { Presentation, SlideElement, CardElement } from '../models/types.ts'
+import type { Presentation, Entity } from '../models/types.ts'
 
 export function exportPresentation(presentation: Presentation): string {
   const { theme, slides, title } = presentation
@@ -74,7 +74,7 @@ ${blobsHTML}
         </div>
         ${slide.hasParticles ? '<canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1;"></canvas>' : ''}
         <div class="${contentClass}">
-${slide.elements.map(el => renderElementHTML(el)).join('\n')}
+${slide.entities.map(el => exportEntityHTML(el)).join('\n')}
         </div>
     </div>`
   }).join('\n')
@@ -122,74 +122,105 @@ ${buildJS()}
 </html>`
 }
 
-function renderElementHTML(el: SlideElement, indent = '            '): string {
-  switch (el.type) {
-    case 'label':
-      return `${indent}<p class="uppercase tracking-[0.3em] text-xs text-text-muted mb-3 reveal">${escHtml(el.content)}</p>`
-    case 'heading': {
-      const tag = el.level === 1 ? 'h1' : 'h2'
-      const sizeClass = el.level === 1
-        ? 'font-display text-[4.5rem] font-black tracking-tight mb-4'
-        : 'font-display text-[3rem] font-bold mb-6'
-      const colorClass = el.gradient
-        ? 'bg-linear-to-br from-accent-1 via-accent-2 to-accent-1 bg-clip-text text-transparent'
-        : ''
-      return `${indent}<${tag} class="${sizeClass} ${colorClass} reveal">${escHtml(el.content)}</${tag}>`
+function exportEntityHTML(entity: Entity, indent = '            '): string {
+  let innerHtml = ''
+
+  entity.components.forEach(comp => {
+    switch (comp.type) {
+      case 'text': {
+        const tag = comp.fontSize === 'h1' ? 'h1' : comp.fontSize === 'h2' ? 'h2' : 'p'
+        let textClasses = 'comp-text reveal '
+        
+        switch (comp.fontSize) {
+          case 'h1': textClasses += 'font-display text-[4.5rem] tracking-tight mb-4 leading-tight '; break
+          case 'h2': textClasses += 'font-display text-[3rem] mb-6 leading-tight '; break
+          case 'label': textClasses += 'text-sm uppercase tracking-widest mb-2 '; break
+          case 'body': textClasses += 'text-xl leading-relaxed '; break
+          case 'small': textClasses += 'text-base '; break
+          default: textClasses += 'text-lg '
+        }
+        
+        if (comp.fontWeight === 'bold') textClasses += 'font-bold '
+        if (comp.fontWeight === 'black') textClasses += 'font-black '
+        
+        if (comp.gradient) textClasses += 'bg-linear-to-br from-accent-1 via-accent-2 to-accent-1 bg-clip-text text-transparent '
+        if (comp.align === 'center') textClasses += 'mx-auto text-center '
+        if (comp.variant === 'muted') textClasses += 'text-text-muted '
+        else if (comp.variant === 'secondary') textClasses += 'text-text-secondary '
+
+        let styleStr = comp.maxWidth ? ` style="max-width: ${comp.maxWidth}"` : ''
+        
+        innerHtml += `\n${indent}  <${tag} class="${textClasses.trim()}"${styleStr}>${escHtml(comp.content)}</${tag}>`
+        break
+      }
+      
+      case 'icon': {
+        let iconClasses = 'comp-icon mb-5 drop-shadow-xl mx-auto select-none reveal '
+        if (comp.animated) iconClasses += 'animate-[float_3s_ease-in-out_infinite] '
+        let styleStr = comp.size ? ` style="font-size: ${comp.size}px"` : ''
+        innerHtml += `\n${indent}  <div class="${iconClasses.trim()}"${styleStr}>${escHtml(comp.value)}</div>`
+        break
+      }
+      
+      case 'list': {
+        const tag = comp.style === 'numbered' ? 'ol' : 'ul'
+        let listClasses = 'comp-list pl-6 space-y-1 reveal '
+        listClasses += comp.style === 'numbered' ? 'list-decimal ' : 'list-disc '
+        listClasses += (comp.variant ?? 'muted') === 'muted' ? 'text-text-muted ' : 'text-text-secondary '
+        
+        const items = comp.items.map(i => `${indent}    <li>${escHtml(i)}</li>`).join('\n')
+        innerHtml += `\n${indent}  <${tag} class="${listClasses.trim()}">\n${items}\n${indent}  </${tag}>`
+        break
+      }
     }
-    case 'text': {
-      const alignClass = el.align === 'center' ? 'mx-auto text-center' : ''
-      const maxWClass = el.maxWidth ? `max-w-[${el.maxWidth}]` : 'max-w-3xl'
-      const colorClass = el.variant === 'muted' ? 'text-text-muted' : el.variant === 'secondary' ? 'text-text-secondary' : ''
-      return `${indent}<p class="text-sm ${colorClass} mb-4 ${maxWClass} ${alignClass} reveal">${escHtml(el.content)}</p>`
+  })
+
+  let entityClasses = 'entity '
+  let entityStyle = ''
+
+  entity.components.forEach(comp => {
+    if (comp.type === 'background') {
+      entityClasses += 'comp-background '
+      if (comp.variant === 'glass') {
+        entityClasses += 'bg-glass-bg border border-glass-border backdrop-blur-xl reveal '
+      } else if (comp.variant === 'metric') {
+        entityClasses += 'bg-white/5 border border-white/10 reveal metric-card transition '
+      }
+      
+      if (comp.rounded) entityClasses += 'rounded-2xl '
+      if (comp.color) entityStyle += `background-color: ${comp.color};`
+      if (comp.padding) entityStyle += `padding: ${comp.padding};`
     }
-    case 'list': {
-      const colorClass = (el.variant ?? 'muted') === 'muted' ? 'text-text-muted' : 'text-text-secondary'
-      const listClass = el.style === 'numbered' ? 'list-decimal' : 'list-disc'
-      const items = el.items.map(i => `${indent}    <li>${escHtml(i)}</li>`).join('\n')
-      return `${indent}<ul class="${listClass} list-inside space-y-2 text-sm ${colorClass} reveal">\n${items}\n${indent}</ul>`
+    if (comp.type === 'layout') {
+      entityClasses += 'comp-layout '
+      if (comp.layoutType === 'grid') {
+        entityClasses += 'grid '
+        if (comp.columns === 3) entityClasses += 'grid-cols-3 '
+        else entityClasses += 'grid-cols-2 '
+        if (comp.gap !== undefined) entityStyle += `gap: ${comp.gap}px;`
+      } else {
+        entityClasses += 'flex '
+        if (comp.direction === 'column') entityClasses += 'flex-col '
+        if (comp.alignItems === 'center') entityClasses += 'items-center '
+      }
     }
-    case 'grid': {
-      const colClass = el.columns === 3 ? 'grid-cols-3' : 'grid-cols-2'
-      const gapStyle = el.gap !== undefined ? ` style="gap: ${el.gap}px"` : ''
-      const childIndent = indent + '    '
-      const children = el.children.map(c => renderCardHTML(c, childIndent)).join('\n')
-      return `${indent}<div class="grid ${colClass} gap-6 mt-2"${gapStyle}>\n${children}\n${indent}</div>`
-    }
-    case 'card':
-      return renderCardHTML(el, indent)
-    case 'emoji': {
-      const animClass = el.animated ? 'animate-[float_3s_ease-in-out_infinite]' : ''
-      return `${indent}<div class="text-[${el.size}px] mb-5 ${animClass} drop-shadow-xl mx-auto select-none">${el.content}</div>`
-    }
+  })
+
+  let childrenHtml = ''
+  if (entity.children && entity.children.length > 0) {
+    childrenHtml = entity.children.map(child => exportEntityHTML(child, indent + '    ')).join('\n')
+    innerHtml += `\n${childrenHtml}\n${indent}`
   }
-}
 
-function renderCardHTML(card: CardElement, indent = '                '): string {
-  const baseClass = card.variant === 'metric'
-    ? 'metric-card transition reveal'
-    : 'bg-glass-bg backdrop-blur-xl border border-glass-border rounded-2xl p-5 reveal'
+  let attrStr = ''
+  if (entityClasses.trim().length > 0) attrStr += ` class="${entityClasses.trim()}"`
+  if (entityStyle.trim().length > 0) attrStr += ` style="${entityStyle.trim()}"`
 
-  const iconHtml = card.icon ? `<span class="text-lg">${card.icon}</span>` : ''
-  const badgeHtml = card.numberBadge !== undefined
-    ? `<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-1 to-accent-2 text-slate-950 text-sm font-semibold">${card.numberBadge}</div>`
-    : ''
-
-  const titleHtml = card.title
-    ? card.numberBadge !== undefined
-      ? `<h3 class="text-base font-semibold mb-1 leading-snug">${escHtml(card.title)}</h3>`
-      : `<h3 class="text-sm font-semibold mb-2 flex items-center gap-2">${iconHtml}${escHtml(card.title)}</h3>`
-    : ''
-
-  const bodyHtml = card.body ? `<p class="text-sm text-text-muted">${escHtml(card.body)}</p>` : ''
-  const listHtml = card.listItems
-    ? `<ul class="list-disc list-inside space-y-2 text-sm text-text-muted">${card.listItems.map(i => `<li>${escHtml(i)}</li>`).join('')}</ul>`
-    : ''
-
-  if (badgeHtml) {
-    return `${indent}<div class="${baseClass} flex gap-4 items-start">${badgeHtml}<div>${titleHtml}${bodyHtml}${listHtml}</div></div>`
+  // Don't format with newlines if it has no children and isn't a container
+  if (!childrenHtml && !innerHtml.includes('\n')) {
+    return `${indent}<div${attrStr}>${innerHtml}</div>`
   }
-
-  return `${indent}<div class="${baseClass}">${titleHtml}${bodyHtml}${listHtml}</div>`
+  return `${indent}<div${attrStr}>${innerHtml}\n${indent}</div>`
 }
 
 function buildJS(): string {

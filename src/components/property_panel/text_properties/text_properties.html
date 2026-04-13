@@ -1,6 +1,6 @@
 <div class="prop-section">
   <div class="prop-group">
-    <div id="el-header-title" class="prop-label" style="color: #06B6D4;">Text Properties</div>
+    <div class="prop-label" style="color: #06B6D4;">Text Component</div>
   </div>
 
   <div class="prop-group">
@@ -8,46 +8,37 @@
     <textarea id="el-content" class="prop-textarea" rows="3"></textarea>
   </div>
 
-  <!-- Heading Only -->
-  <div id="heading-only" class="prop-group">
-    <div class="prop-row">
-      <div style="flex: 1;">
-        <label class="prop-label">Level</label>
-        <select id="el-level" class="prop-select">
-          <option value="1">H1 (Large)</option>
-          <option value="2">H2 (Medium)</option>
-        </select>
-      </div>
-      <div style="flex: 1; padding-top: 20px;">
-        <label class="prop-check-row">
-          <input type="checkbox" id="el-gradient">
-          <span style="font-size: 13px;">Gradient</span>
-        </label>
-      </div>
+  <div class="prop-row">
+    <div style="flex: 1;">
+      <label class="prop-label">Font Size</label>
+      <select id="el-font-size" class="prop-select">
+        <option value="label">Label</option>
+        <option value="body">Body</option>
+        <option value="h2">Heading 2</option>
+        <option value="h1">Heading 1</option>
+        <option value="small">Small</option>
+      </select>
+    </div>
+    <div style="flex: 1; padding-top: 20px;">
+      <label class="prop-check-row">
+        <input type="checkbox" id="el-gradient">
+        <span style="font-size: 13px;">Gradient</span>
+      </label>
     </div>
   </div>
 
-  <!-- Text Only -->
-  <div id="text-only" class="prop-stack">
-    <div class="prop-group">
-      <label class="prop-label">Variant</label>
-      <select id="el-variant" class="prop-select">
-        <option value="body">Body</option>
-        <option value="muted">Muted</option>
-        <option value="secondary">Secondary</option>
-      </select>
-    </div>
-    <div class="prop-group">
-      <label class="prop-label">Alignment</label>
-      <select id="el-align" class="prop-select">
-        <option value="left">Left</option>
-        <option value="center">Center</option>
-        <option value="right">Right</option>
-      </select>
-    </div>
-    <div class="prop-group">
-      <label class="prop-label">Max Width</label>
-      <input type="text" id="el-max-width" class="prop-input" placeholder="e.g. 800px, 36rem">
-    </div>
+  <div class="prop-group">
+    <label class="prop-label">Alignment</label>
+    <select id="el-align" class="prop-select">
+      <option value="left">Left</option>
+      <option value="center">Center</option>
+      <option value="right">Right</option>
+    </select>
+  </div>
+
+  <div class="prop-group">
+    <label class="prop-label">Max Width</label>
+    <input type="text" id="el-max-width" class="prop-input" placeholder="e.g. 800px, 36rem">
   </div>
 </div>
+

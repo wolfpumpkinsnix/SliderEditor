@@ -27,7 +27,7 @@
  */
 
 import { signal, computed, batch } from '@preact/signals-core'
-import type { Presentation, Slide, SlideElement, EditorMode } from '../models/types.ts'
+import type { Presentation, Slide, Entity, EditorMode } from '../models/types.ts'
 import { savePresentation, loadPresentation } from '../services/storage.ts'
 import { examplePresentation } from '../models/defaults.ts'
 
@@ -132,18 +132,28 @@ export function updateCurrentSlide(updater: (slide: Slide) => void): void {
   }
 }
 
-export function updateElement(elementId: string, updater: (el: SlideElement) => void): void {
+export function updateElement(elementId: string, updater: (el: Entity) => void): void {
   let found = false
-  outer: for (const slide of presentation.value.slides) {
-    const el = slide.elements.find(e => e.id === elementId)
-    if (el) { updater(el); found = true; break outer }
-    for (const topEl of slide.elements) {
-      if (topEl.type === 'grid') {
-        const card = topEl.children.find(c => c.id === elementId)
-        if (card) { updater(card); found = true; break outer }
+  const updateInEntities = (entities: Entity[]): boolean => {
+    for (const el of entities) {
+      if (el.id === elementId) {
+        updater(el)
+        return true
+      }
+      if (el.children && updateInEntities(el.children)) {
+        return true
       }
     }
+    return false
   }
+
+  for (const slide of presentation.value.slides) {
+    if (updateInEntities(slide.entities)) {
+      found = true
+      break
+    }
+  }
+
   if (found) {
     persist()
     notifyPresentation()
@@ -176,14 +186,15 @@ export function duplicateSlide(index: number): void {
   const original = presentation.value.slides[index]
   const copy: Slide = JSON.parse(JSON.stringify(original))
   copy.id = crypto.randomUUID()
-  copy.elements = copy.elements.map(el => {
-    const withNewId = { ...el, id: crypto.randomUUID() }
-    if (el.type === 'grid') {
-      const grid = el as { type: 'grid'; children: { id: string }[] }
-      return { ...withNewId, children: grid.children.map(c => ({ ...c, id: crypto.randomUUID() })) }
+
+  const assignNewIds = (entities: Entity[]) => {
+    for (const el of entities) {
+      el.id = crypto.randomUUID()
+      if (el.children) assignNewIds(el.children)
     }
-    return withNewId
-  }) as Slide['elements']
+  }
+  assignNewIds(copy.entities)
+
   presentation.value.slides.splice(index + 1, 0, copy)
   persist()
   batch(() => {
@@ -203,8 +214,8 @@ export function moveSlide(fromIndex: number, toIndex: number): void {
   })
 }
 
-export function addElement(element: SlideElement): void {
-  presentation.value.slides[currentSlideIndex.value].elements.push(element)
+export function addElement(element: Entity): void {
+  presentation.value.slides[currentSlideIndex.value].entities.push(element)
   persist()
   batch(() => {
     selectedElementId.value = element.id
@@ -214,24 +225,28 @@ export function addElement(element: SlideElement): void {
 
 export function removeElement(elementId: string): void {
   const slide = presentation.value.slides[currentSlideIndex.value]
-  const topIndex = slide.elements.findIndex(e => e.id === elementId)
-  if (topIndex !== -1) {
-    slide.elements.splice(topIndex, 1)
-  } else {
-    for (const el of slide.elements) {
-      if (el.type === 'grid') {
-        const childIndex = el.children.findIndex(c => c.id === elementId)
-        if (childIndex !== -1) { el.children.splice(childIndex, 1); break }
-      }
+
+  const removeFromEntities = (entities: Entity[]): boolean => {
+    const idx = entities.findIndex(e => e.id === elementId)
+    if (idx !== -1) {
+      entities.splice(idx, 1)
+      return true
     }
+    for (const el of entities) {
+      if (el.children && removeFromEntities(el.children)) return true
+    }
+    return false
   }
-  persist()
-  batch(() => {
-    if (selectedElementId.value === elementId) {
-      selectedElementId.value = null
-    }
-    notifyPresentation()
-  })
+
+  if (removeFromEntities(slide.entities)) {
+    persist()
+    batch(() => {
+      if (selectedElementId.value === elementId) {
+        selectedElementId.value = null
+      }
+      notifyPresentation()
+    })
+  }
 }
 
 export function updateTitle(title: string): void {
@@ -242,45 +257,65 @@ export function updateTitle(title: string): void {
 
 export function moveElementUp(elementId: string): void {
   const slide = presentation.value.slides[currentSlideIndex.value]
-  const idx = slide.elements.findIndex(e => e.id === elementId)
+  const idx = slide.entities.findIndex(e => e.id === elementId)
   if (idx <= 0) return
-  ;[slide.elements[idx - 1], slide.elements[idx]] = [slide.elements[idx], slide.elements[idx - 1]]
+  ;[slide.entities[idx - 1], slide.entities[idx]] = [slide.entities[idx], slide.entities[idx - 1]]
   persist()
   notifyPresentation()
 }
 
 export function moveElementDown(elementId: string): void {
   const slide = presentation.value.slides[currentSlideIndex.value]
-  const idx = slide.elements.findIndex(e => e.id === elementId)
-  if (idx === -1 || idx >= slide.elements.length - 1) return
-  ;[slide.elements[idx], slide.elements[idx + 1]] = [slide.elements[idx + 1], slide.elements[idx]]
+  const idx = slide.entities.findIndex(e => e.id === elementId)
+  if (idx === -1 || idx >= slide.entities.length - 1) return
+  ;[slide.entities[idx], slide.entities[idx + 1]] = [slide.entities[idx + 1], slide.entities[idx]]
   persist()
   notifyPresentation()
 }
 
 export function bringToFront(elementId: string): void {
   const slide = presentation.value.slides[currentSlideIndex.value]
-  const idx = slide.elements.findIndex(e => e.id === elementId)
-  if (idx === -1 || idx === slide.elements.length - 1) return
-  slide.elements.push(...slide.elements.splice(idx, 1))
+  const idx = slide.entities.findIndex(e => e.id === elementId)
+  if (idx === -1 || idx === slide.entities.length - 1) return
+  slide.entities.push(...slide.entities.splice(idx, 1))
   persist()
   notifyPresentation()
 }
 
 export function sendToBack(elementId: string): void {
   const slide = presentation.value.slides[currentSlideIndex.value]
-  const idx = slide.elements.findIndex(e => e.id === elementId)
+  const idx = slide.entities.findIndex(e => e.id === elementId)
   if (idx <= 0) return
-  slide.elements.unshift(...slide.elements.splice(idx, 1))
+  slide.entities.unshift(...slide.entities.splice(idx, 1))
+  persist()
+  notifyPresentation()
+}
+
+export function reorderElement(elementId: string, newIndex: number): void {
+  const slide = presentation.value.slides[currentSlideIndex.value]
+  const oldIndex = slide.entities.findIndex(e => e.id === elementId)
+  if (oldIndex === -1 || oldIndex === newIndex) return
+  const clamped = Math.max(0, Math.min(newIndex, slide.entities.length - 1))
+  const [el] = slide.entities.splice(oldIndex, 1)
+  slide.entities.splice(clamped, 0, el)
   persist()
   notifyPresentation()
 }
 
 /**
- * Find an element by id in a slide, searching both top-level elements
- * and children of grid elements.
+ * Find an entity by id in a slide, searching both top-level entities
+ * and children recursively.
  */
-export function findElement(slide: Slide, id: string): SlideElement | undefined {
-  return slide.elements.find(e => e.id === id)
-    ?? slide.elements.flatMap(e => e.type === 'grid' ? e.children : []).find(c => c.id === id)
+export function findElement(slide: Slide, id: string): Entity | undefined {
+  const findInEntities = (entities: Entity[]): Entity | undefined => {
+    for (const el of entities) {
+      if (el.id === id) return el
+      if (el.children) {
+        const found = findInEntities(el.children)
+        if (found) return found
+      }
+    }
+    return undefined
+  }
+  return findInEntities(slide.entities)
 }

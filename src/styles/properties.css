@@ -42,6 +42,11 @@
   background: rgba(255,255,255,0.08);
 }
 
+.prop-select option {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
 .prop-row {
   display: flex;
   align-items: center;

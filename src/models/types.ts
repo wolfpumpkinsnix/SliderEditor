@@ -31,7 +31,7 @@ export interface Theme {
 export interface Slide {
   id: string
   background: SlideBackground
-  elements: SlideElement[]
+  entities: Entity[]
   hasParticles: boolean
   layout: 'center' | 'top' // center for title slides, top for content slides
 }
@@ -49,74 +49,64 @@ export interface BlobConfig {
   bottom?: string
   left?: string
   right?: string
-
 }
 
-export type SlideElement =
-  | LabelElement
-  | HeadingElement
-  | TextElement
-  | ListElement
-  | GridElement
-  | CardElement
-  | EmojiElement
 
-export interface LabelElement {
+export interface Entity {
   id: string
-  type: 'label'
-  content: string
+  name: string
+  components: Component[]
+  children?: Entity[]
 }
 
-export interface HeadingElement {
-  id: string
-  type: 'heading'
-  level: 1 | 2
-  content: string
-  gradient: boolean
-}
+export type Component =
+  | TextComponent
+  | BackgroundComponent
+  | LayoutComponent
+  | IconComponent
+  | ListComponent
 
-export interface TextElement {
-  id: string
+export interface TextComponent {
   type: 'text'
   content: string
-  variant: 'body' | 'muted' | 'secondary'
-  maxWidth?: string
+  fontSize?: 'label' | 'h1' | 'h2' | 'body' | 'small'
+  fontWeight?: 'normal' | 'bold' | 'black'
+  gradient?: boolean
   align?: 'left' | 'center' | 'right'
+  maxWidth?: string
+  variant?: 'muted' | 'secondary' // mapping back to old text variants
 }
 
-export interface ListElement {
-  id: string
+export interface BackgroundComponent {
+  type: 'background'
+  variant?: 'solid' | 'glass' | 'metric'
+  color?: string
+  rounded?: boolean
+  padding?: string
+}
+
+export interface LayoutComponent {
+  type: 'layout'
+  layoutType: 'flex' | 'grid'
+  columns?: 2 | 3
+  gap?: number
+  direction?: 'row' | 'column'
+  alignItems?: 'start' | 'center' | 'end'
+}
+
+export interface IconComponent {
+  type: 'icon'
+  value: string // emoji or icon id
+  size?: number
+  animated?: boolean
+}
+
+export interface ListComponent {
   type: 'list'
   items: string[]
   style: 'disc' | 'numbered'
   variant?: 'muted' | 'secondary'
 }
 
-export interface GridElement {
-  id: string
-  type: 'grid'
-  columns: 2 | 3
-  gap?: number
-  children: CardElement[]
-}
-
-export interface CardElement {
-  id: string
-  type: 'card'
-  variant: 'glass' | 'metric'
-  icon?: string
-  title?: string
-  body?: string
-  listItems?: string[]
-  numberBadge?: number
-}
-
-export interface EmojiElement {
-  id: string
-  type: 'emoji'
-  content: string
-  size: number
-  animated: boolean
-}
-
 export type EditorMode = 'edit' | 'present'
+

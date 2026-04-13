@@ -1,5 +1,5 @@
 import { store } from '../../state/store.ts'
-import { currentSlide, presentation, selectedElementId } from '../../state/signalsStore.ts'
+import { currentSlide, presentation, selectedElementId, findElement } from '../../state/signalsStore.ts'
 import { SlideRendererElement } from '../slide_renderer/slide_renderer.ts'
 import { Component } from '../../lib/decorators.ts'
 import { EffectComponent } from '../../lib/effect_component.ts'
@@ -90,9 +90,10 @@ export class SlideCanvasElement extends EffectComponent {
   }
 
   private startInlineEdit(domEl: HTMLElement, elementId: string) {
-    const slideEl = currentSlide.value?.elements.find(e => e.id === elementId)
+    const slideEl = findElement(currentSlide.value!, elementId)
     if (!slideEl) return
-    if (slideEl.type !== 'text' && slideEl.type !== 'heading' && slideEl.type !== 'label') return
+    const textComp = slideEl.components.find(c => c.type === 'text') as any
+    if (!textComp) return
 
     domEl.contentEditable = 'true'
     domEl.focus()
@@ -111,8 +112,9 @@ export class SlideCanvasElement extends EffectComponent {
       controller.abort()
       const newContent = domEl.textContent ?? ''
       store.updateElement(elementId, el => {
-        if (el.type === 'text' || el.type === 'heading' || el.type === 'label') {
-          el.content = newContent
+        const tc = el.components.find(c => c.type === 'text')
+        if (tc && tc.type === 'text') {
+          tc.content = newContent
         }
       })
     }
@@ -123,7 +125,7 @@ export class SlideCanvasElement extends EffectComponent {
         domEl.contentEditable = 'false'
         controller.abort()
       }
-      if (e.key === 'Enter' && !e.shiftKey && slideEl.type !== 'text') {
+      if (e.key === 'Enter' && !e.shiftKey && textComp.fontSize !== 'body' && textComp.fontSize !== 'small') {
         e.preventDefault()
         domEl.blur()
       }

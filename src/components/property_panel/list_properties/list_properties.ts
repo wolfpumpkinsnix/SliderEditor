@@ -1,5 +1,4 @@
-import { store } from '../../../state/store.ts'
-import { currentSlide, selectedElementId } from '../../../state/signalsStore.ts'
+import type { ListComponent } from '../../../models/types.ts'
 import { Component } from '../../../lib/decorators.ts'
 import { BasePropertyElement } from '../base_property_element.ts'
 import listPropertiesHtml from './list_properties.html?raw'
@@ -17,42 +16,37 @@ export class ListPropertiesElement extends BasePropertyElement {
     })
   }
 
-  private wireInputs() {
-    const id = selectedElementId.value
-    if (!id) return
+  public component: ListComponent | null = null
 
+  private wireInputs() {
     this.get<HTMLTextAreaElement>('el-items')?.addEventListener('input', (e) => {
       const val = (e.target as HTMLTextAreaElement).value.split('\n')
-      store.updateElement(id, el => { if (el.type === 'list') el.items = val })
+      if (this.component) this.component.items = val
     })
 
     this.get<HTMLSelectElement>('el-style')?.addEventListener('change', (e) => {
-      store.updateElement(id, el => { if (el.type === 'list') el.style = (e.target as HTMLSelectElement).value as any })
+      if (this.component) this.component.style = (e.target as HTMLSelectElement).value as any
     })
 
     this.get<HTMLSelectElement>('el-variant')?.addEventListener('change', (e) => {
-      store.updateElement(id, el => { if (el.type === 'list') el.variant = (e.target as HTMLSelectElement).value as any })
+      if (this.component) this.component.variant = (e.target as HTMLSelectElement).value as any
     })
   }
 
   private syncValues() {
-    const id = selectedElementId.value
-    const slide = currentSlide.value
-    if (!id || !slide) return
-
-    const el = slide.elements.find(e => e.id === id)
-    if (!el || el.type !== 'list') return
+    const comp = this.component
+    if (!comp) return
 
     const items = this.get<HTMLTextAreaElement>('el-items')
     if (items) {
-      const val = el.items.join('\n')
+      const val = comp.items.join('\n')
       if (items.value !== val) items.value = val
     }
 
     const style = this.get<HTMLSelectElement>('el-style')
-    if (style && style.value !== el.style) style.value = el.style ?? 'disc'
+    if (style && style.value !== comp.style) style.value = comp.style ?? 'disc'
 
     const variant = this.get<HTMLSelectElement>('el-variant')
-    if (variant && variant.value !== (el.variant ?? 'muted')) variant.value = el.variant ?? 'muted'
+    if (variant && variant.value !== (comp.variant ?? 'muted')) variant.value = comp.variant ?? 'muted'
   }
 }

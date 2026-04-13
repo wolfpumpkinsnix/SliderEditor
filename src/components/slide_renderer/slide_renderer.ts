@@ -1,4 +1,4 @@
-import type { Slide, SlideElement, CardElement, Theme } from '../../models/types.ts'
+import type { Slide, Entity, Component as EntityComponent, Theme } from '../../models/types.ts'
 import { Component } from '../../lib/decorators.ts'
 import slideRendererHtml from './slide_renderer.html?raw'
 import slideRendererCss from './slide_renderer.css?raw'
@@ -119,12 +119,12 @@ export class SlideRendererElement extends HTMLElement {
       }
     }
 
-    // 3. Render Elements
+    // 3. Render Entities
     const content = this.querySelector('.slide-content')!
     if (slide.layout === 'center') content.classList.add('text-center')
 
-    slide.elements.forEach(el => {
-      content.appendChild(this.renderElement(el))
+    slide.entities.forEach(el => {
+      content.appendChild(this.renderEntity(el))
     })
 
     // 4. Editor/Static overrides — applied after every render so new elements are correct
@@ -151,119 +151,133 @@ export class SlideRendererElement extends HTMLElement {
     }
   }
 
-  private renderElement(el: SlideElement): HTMLElement {
-    let node: HTMLElement
-    switch (el.type) {
-      case 'label': {
-        node = this.cloneTemplate('tpl-label')
-        node.textContent = el.content
-        break
-      }
-      case 'heading': {
-        node = this.cloneTemplate('tpl-heading')
-        const tag = el.level === 1 ? 'h1' : 'h2'
-        const newNode = document.createElement(tag)
-        newNode.className = node.className // Copy classes from template
-        node.replaceWith(newNode)
-        node = newNode
-        
-        node.textContent = el.content
-        const sizeClass = el.level === 1
-          ? ['font-display', 'text-[4.5rem]', 'font-black', 'tracking-tight', 'mb-4']
-          : ['font-display', 'text-[3rem]', 'font-bold', 'mb-6']
-        node.classList.add(...sizeClass)
-        if (el.gradient) {
-          node.classList.add('bg-linear-to-br', 'from-accent-1', 'via-accent-2', 'to-accent-1', 'bg-clip-text', 'text-transparent')
-        }
-        break
-      }
-      case 'text': {
-        node = this.cloneTemplate('tpl-text')
-        node.textContent = el.content
-        if (el.align === 'center') node.classList.add('mx-auto', 'text-center')
-        const maxWClass = el.maxWidth ? `max-w-[${el.maxWidth}]` : 'max-w-3xl'
-        node.classList.add(maxWClass)
-        const colorClass = el.variant === 'muted' ? 'text-text-muted' : el.variant === 'secondary' ? 'text-text-secondary' : ''
-        if (colorClass) node.classList.add(colorClass)
-        break
-      }
-      case 'list': {
-        node = this.cloneTemplate('tpl-list')
-        const colorClass = (el.variant ?? 'muted') === 'muted' ? 'text-text-muted' : 'text-text-secondary'
-        const listClass = el.style === 'numbered' ? 'list-decimal' : 'list-disc'
-        node.classList.add(colorClass, listClass)
-        el.items.forEach(item => {
-          const li = document.createElement('li')
-          li.textContent = item
-          node.appendChild(li)
-        })
-        break
-      }
-      case 'grid': {
-        node = this.cloneTemplate('tpl-grid')
-        const colClass = el.columns === 3 ? 'grid-cols-3' : 'grid-cols-2'
-        node.classList.add(colClass)
-        if (el.gap !== undefined) node.style.gap = `${el.gap}px`
-        el.children.forEach(c => {
-          node.appendChild(this.renderCardElement(c))
-        })
-        break
-      }
-      case 'card': {
-        node = this.renderCardElement(el)
-        break
-      }
-      case 'emoji': {
-        node = this.cloneTemplate('tpl-emoji')
-        node.textContent = el.content
-        node.style.fontSize = `${el.size}px`
-        if (el.animated && !this._isStatic) node.classList.add('animate-[float_3s_ease-in-out_infinite]')
-        break
-      }
-      default:
-        node = document.createElement('div')
-    }
-
+  private renderEntity(entity: Entity): HTMLElement {
+    const node = document.createElement('div')
+    node.className = 'entity'
+    
+    // Editor metadata
     if (this._editMode) {
-      node.dataset['elementId'] = el.id
+      node.dataset['elementId'] = entity.id
     }
-    return node
-  }
 
-  private renderCardElement(card: CardElement): HTMLElement {
-    const tplId = card.variant === 'metric' ? 'tpl-card-metric' : 'tpl-card-glass'
-    const node = this.cloneTemplate(tplId)
+    // Apply Components
+    entity.components.forEach(comp => {
+      this.applyComponent(node, comp)
+    })
 
-    const title = node.querySelector('.card-title')
-    if (title) title.textContent = card.title ?? ''
-
-    const body = node.querySelector('.card-body')
-    if (body) body.textContent = card.body ?? ''
-
-    const icon = node.querySelector('.card-icon')
-    if (icon) icon.textContent = card.icon ?? ''
-
-    const badge = node.querySelector('.card-badge')
-    if (badge) badge.textContent = card.numberBadge !== undefined ? String(card.numberBadge) : ''
-
-    const list = node.querySelector('.card-list')
-    if (list && card.listItems) {
-      card.listItems.forEach(item => {
-        const li = document.createElement('li')
-        li.textContent = item
-        list.appendChild(li)
+    // Render Children
+    if (entity.children && entity.children.length > 0) {
+      entity.children.forEach(child => {
+        node.appendChild(this.renderEntity(child))
       })
     }
 
     return node
   }
 
-  private getTemplate(id: string): HTMLTemplateElement {
-    return this.querySelector(`#${id}`) as HTMLTemplateElement
+  private applyComponent(node: HTMLElement, comp: EntityComponent) {
+    switch (comp.type) {
+      case 'text': {
+        const textNode = document.createElement(this.getTextTag(comp.fontSize))
+        textNode.textContent = comp.content
+        textNode.className = 'comp-text'
+        
+        // Font size classes
+        const sizeClasses = this.getTextSizeClasses(comp.fontSize)
+        textNode.classList.add(...sizeClasses)
+
+        if (comp.fontWeight === 'bold') textNode.classList.add('font-bold')
+        if (comp.fontWeight === 'black') textNode.classList.add('font-black')
+        
+        if (comp.gradient) {
+          textNode.classList.add('bg-linear-to-br', 'from-accent-1', 'via-accent-2', 'to-accent-1', 'bg-clip-text', 'text-transparent')
+        }
+
+        if (comp.align === 'center') textNode.classList.add('mx-auto', 'text-center')
+        if (comp.maxWidth) textNode.style.maxWidth = comp.maxWidth
+        
+        if (comp.variant === 'muted') textNode.classList.add('text-text-muted')
+        else if (comp.variant === 'secondary') textNode.classList.add('text-text-secondary')
+
+        node.appendChild(textNode)
+        break
+      }
+
+      case 'background': {
+        node.classList.add('comp-background')
+        if (comp.variant === 'glass') {
+          node.classList.add('bg-glass-bg', 'border', 'border-glass-border', 'backdrop-blur-xl')
+        } else if (comp.variant === 'metric') {
+          node.classList.add('bg-white/5', 'border', 'border-white/10')
+        }
+        
+        if (comp.color) node.style.backgroundColor = comp.color
+        if (comp.rounded) node.classList.add('rounded-2xl')
+        if (comp.padding) node.style.padding = comp.padding
+        break
+      }
+
+      case 'layout': {
+        node.classList.add('comp-layout')
+        if (comp.layoutType === 'grid') {
+          node.classList.add('grid')
+          if (comp.columns === 3) node.classList.add('grid-cols-3')
+          else node.classList.add('grid-cols-2')
+          
+          if (comp.gap !== undefined) node.style.gap = `${comp.gap}px`
+        } else {
+          node.classList.add('flex')
+          if (comp.direction === 'column') node.classList.add('flex-col')
+          if (comp.alignItems === 'center') node.classList.add('items-center')
+        }
+        break
+      }
+
+      case 'icon': {
+        const iconNode = document.createElement('div')
+        iconNode.className = 'comp-icon'
+        iconNode.textContent = comp.value
+        if (comp.size) iconNode.style.fontSize = `${comp.size}px`
+        if (comp.animated && !this._isStatic) {
+          iconNode.classList.add('animate-[float_3s_ease-in-out_infinite]')
+        }
+        node.appendChild(iconNode)
+        break
+      }
+
+      case 'list': {
+        const listNode = document.createElement(comp.style === 'numbered' ? 'ol' : 'ul')
+        listNode.className = 'comp-list'
+        const listClass = comp.style === 'numbered' ? 'list-decimal' : 'list-disc'
+        const colorClass = (comp.variant ?? 'muted') === 'muted' ? 'text-text-muted' : 'text-text-secondary'
+        listNode.classList.add(listClass, colorClass, 'pl-6', 'space-y-1')
+        
+        comp.items.forEach(item => {
+          const li = document.createElement('li')
+          li.textContent = item
+          listNode.appendChild(li)
+        })
+        node.appendChild(listNode)
+        break
+      }
+    }
   }
 
-  private cloneTemplate(id: string): HTMLElement {
-    return (this.getTemplate(id).content.cloneNode(true) as DocumentFragment).firstElementChild as HTMLElement
+  private getTextTag(size?: string): string {
+    if (size === 'h1') return 'h1'
+    if (size === 'h2') return 'h2'
+    return 'p'
+  }
+
+  private getTextSizeClasses(size?: string): string[] {
+    switch (size) {
+      case 'h1': return ['font-display', 'text-[4.5rem]', 'tracking-tight', 'mb-4', 'leading-tight']
+      case 'h2': return ['font-display', 'text-[3rem]', 'mb-6', 'leading-tight']
+      case 'label': return ['text-sm', 'uppercase', 'tracking-widest', 'mb-2']
+      case 'body': return ['text-xl', 'leading-relaxed']
+      case 'small': return ['text-base']
+      default: return ['text-lg']
+    }
   }
 }
 

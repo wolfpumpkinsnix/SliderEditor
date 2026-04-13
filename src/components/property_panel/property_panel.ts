@@ -1,4 +1,4 @@
-import { currentSlide, selectedElementId, moveElementUp, moveElementDown, bringToFront, sendToBack, removeElement, findElement } from '../../state/signalsStore.ts'
+import { currentSlide, selectedElementId, removeElement, findElement, updateElement } from '../../state/signalsStore.ts'
 import { Component } from '../../lib/decorators.ts'
 import { EffectComponent } from '../../lib/effect_component.ts'
 import propertyPanelHtml from './property_panel.html?raw'
@@ -6,9 +6,9 @@ import propertyPanelHtml from './property_panel.html?raw'
 // Import sub-components to register them
 import './slide_properties/slide_properties.ts'
 import './text_properties/text_properties.ts'
-import './emoji_properties/emoji_properties.ts'
-import './grid_properties/grid_properties.ts'
-import './card_properties/card_properties.ts'
+import './icon_properties/icon_properties.ts'
+import './layout_properties/layout_properties.ts'
+import './background_properties/background_properties.ts'
 import './list_properties/list_properties.ts'
 
 @Component({
@@ -51,54 +51,67 @@ export class PropertyPanelElement extends EffectComponent {
 
     // Already showing this element's properties — skip full re-render
     if (container.dataset['view'] === 'element'
-      && container.dataset['elementId'] === el.id
-      && container.dataset['elementType'] === el.type) return
+      && container.dataset['elementId'] === el.id) return
 
     container.dataset['view'] = 'element'
     container.dataset['elementId'] = el.id
-    container.dataset['elementType'] = el.type
     container.replaceChildren()
 
-    let propEl: HTMLElement | null = null
-    switch (el.type) {
-      case 'label':
-      case 'text':
-      case 'heading': propEl = document.createElement('text-properties'); break
-      case 'emoji':   propEl = document.createElement('emoji-properties'); break
-      case 'grid':    propEl = document.createElement('grid-properties'); break
-      case 'card':    propEl = document.createElement('card-properties'); break
-      case 'list':    propEl = document.createElement('list-properties'); break
-    }
-    if (propEl) container.appendChild(propEl)
+    // Render title/meta
+    const title = document.createElement('h3')
+    title.textContent = `Entity: ${el.name}`
+    title.className = 'text-lg font-bold mb-4 px-4'
+    container.appendChild(title)
 
-    // Reorder controls (only for top-level elements, not grid children)
-    const isTopLevel = !!slide.elements.find(e => e.id === el.id)
-    if (isTopLevel) {
-      const reorderRow = document.createElement('div')
-      reorderRow.className = 'reorder-row'
-      reorderRow.innerHTML = `
-        <button data-action="up"    title="Move up">↑ Up</button>
-        <button data-action="down"  title="Move down">↓ Down</button>
-        <button data-action="front" title="Bring to front">⬆ Front</button>
-        <button data-action="back"  title="Send to back">⬇ Back</button>
-      `
-      reorderRow.addEventListener('click', (e) => {
-        const btn = (e.target as HTMLElement).closest('button[data-action]') as HTMLElement | null
-        if (!btn) return
-        switch (btn.dataset['action']) {
-          case 'up':    moveElementUp(el.id); break
-          case 'down':  moveElementDown(el.id); break
-          case 'front': bringToFront(el.id); break
-          case 'back':  sendToBack(el.id); break
+    // Mount an editor for each component attached to the entity
+    el.components.forEach(comp => {
+      let propEl: HTMLElement | null = null
+      switch (comp.type) {
+        case 'text':       propEl = document.createElement('text-properties'); break
+        case 'icon':       propEl = document.createElement('icon-properties'); break
+        case 'layout':     propEl = document.createElement('layout-properties'); break
+        case 'background': propEl = document.createElement('background-properties'); break
+        case 'list':       propEl = document.createElement('list-properties'); break
+      }
+      if (propEl) {
+        (propEl as any).component = comp // Pass component reference
+        container.appendChild(propEl)
+      }
+    })
+
+    // Add component section
+    const addSection = document.createElement('div')
+    addSection.className = 'mx-4 mt-6 flex flex-col gap-2 p-3 bg-slate-800/50 rounded-xl border border-slate-700/50'
+    addSection.innerHTML = `
+      <div class="text-xs font-semibold text-slate-400 mb-1">ADD COMPONENT</div>
+      <select class="prop-select" id="add-comp-select">
+        <option value="text">Text / Heading</option>
+        <option value="background">Background</option>
+        <option value="layout">Layout / Grid</option>
+        <option value="icon">Icon / Emoji</option>
+        <option value="list">List</option>
+      </select>
+      <button id="add-comp-btn" class="toolbar-btn toolbar-btn-outline w-full justify-center mt-1">＋ Add</button>
+    `
+    container.appendChild(addSection)
+
+    addSection.querySelector('#add-comp-btn')!.addEventListener('click', () => {
+      const type = addSection.querySelector<HTMLSelectElement>('#add-comp-select')!.value
+      updateElement(el.id, entity => {
+        switch(type) {
+          case 'text': entity.components.push({ type: 'text', content: 'New Text', fontSize: 'body', variant: 'secondary' }); break;
+          case 'background': entity.components.push({ type: 'background', variant: 'glass', padding: '1.5rem', rounded: true }); break;
+          case 'layout': entity.components.push({ type: 'layout', layoutType: 'flex', direction: 'column', gap: 16 }); break;
+          case 'icon': entity.components.push({ type: 'icon', value: '😀', size: 48, animated: false }); break;
+          case 'list': entity.components.push({ type: 'list', items: ['Item 1', 'Item 2'], style: 'disc', variant: 'secondary' }); break;
         }
       })
-      container.appendChild(reorderRow)
-    }
+    })
 
     // Delete button
     const deleteBtn = document.createElement('button')
-    deleteBtn.className = 'delete-btn'
-    deleteBtn.textContent = 'Delete selected element'
+    deleteBtn.className = 'delete-btn mx-4 mt-6 mb-6'
+    deleteBtn.textContent = 'Delete entity'
     deleteBtn.onclick = () => removeElement(el.id)
     container.appendChild(deleteBtn)
   }

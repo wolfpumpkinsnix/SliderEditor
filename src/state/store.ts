@@ -13,7 +13,7 @@
  */
 
 import { effect } from '@preact/signals-core'
-import type { Presentation, Slide, SlideElement, EditorMode } from '../models/types.ts'
+import type { Presentation, Slide, Entity, EditorMode } from '../models/types.ts'
 import * as signals from './signalsStore.ts'
 
 class PresentationStore extends EventTarget {
@@ -50,12 +50,12 @@ class PresentationStore extends EventTarget {
   selectElement(id: string | null): void { signals.selectElement(id) }
   setMode(m: EditorMode): void { signals.setMode(m) }
   updateCurrentSlide(updater: (slide: Slide) => void): void { signals.updateCurrentSlide(updater) }
-  updateElement(elementId: string, updater: (el: SlideElement) => void): void { signals.updateElement(elementId, updater) }
+  updateElement(elementId: string, updater: (el: Entity) => void): void { signals.updateElement(elementId, updater) }
   addSlide(slide: Slide, afterIndex?: number): void { signals.addSlide(slide, afterIndex) }
   deleteSlide(index: number): void { signals.deleteSlide(index) }
   duplicateSlide(index: number): void { signals.duplicateSlide(index) }
   moveSlide(fromIndex: number, toIndex: number): void { signals.moveSlide(fromIndex, toIndex) }
-  addElement(element: SlideElement): void { signals.addElement(element) }
+  addElement(element: Entity): void { signals.addElement(element) }
   removeElement(elementId: string): void { signals.removeElement(elementId) }
   updateTitle(title: string): void { signals.updateTitle(title) }
   moveElementUp(id: string): void { signals.moveElementUp(id) }
